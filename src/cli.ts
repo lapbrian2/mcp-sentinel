@@ -5,6 +5,7 @@ import { PolicyLoader } from "./policy/loader.js";
 import { initDatabase } from "./audit/db.js";
 import { StdioProxy } from "./proxy/stdio.js";
 import { HttpProxy, createHttpHandler } from "./proxy/http.js";
+import { startDashboardServer } from "./api/server.js";
 import { logger, setLogLevel } from "./utils/logger.js";
 import { createServer } from "http";
 import type { SentinelConfig, PolicyConfig } from "./types.js";
@@ -32,6 +33,9 @@ async function start(configPath?: string): Promise<void> {
   });
 
   const getPolicies = (): PolicyConfig => policies;
+
+  // Start dashboard + management API server
+  startDashboardServer(config.dashboardPort, getPolicies);
 
   // Start server for each MCP server config
   for (const serverConfig of config.servers) {

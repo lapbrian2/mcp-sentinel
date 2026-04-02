@@ -11,6 +11,7 @@ import { evaluatePolicy } from "../policy/engine.js";
 import { SecurityScanner } from "../security/scanner.js";
 import { logAuditEntry } from "../audit/logger.js";
 import { logger } from "../utils/logger.js";
+import { lookupApiKey } from "../auth/api-keys.js";
 
 const JSONRPC_ERROR_CODES = {
   POLICY_DENIED: -32001,
@@ -173,10 +174,17 @@ export class HttpProxy {
     }
 
     const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-    // In MVP, we do a simple lookup against api_keys table
-    // For now, return a role based on token prefix (placeholder)
-    // Full API key → role mapping is in the auth module
-    return { callerId: token.slice(0, 8), callerRole: policies.defaultRole };
+
+    // Look up the API key in the database for real RBAC resolution
+    try {
+      const resolved = lookupApiKey(token);
+      if (resolved) return resolved;
+    } catch {
+      // DB may not be initialized in some test paths
+    }
+
+    // Unknown key — use default role
+    return { callerId: token.slice(0, 16), callerRole: policies.defaultRole };
   }
 }
 
