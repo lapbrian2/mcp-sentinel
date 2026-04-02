@@ -5,6 +5,7 @@ import type { SentinelConfig } from "../types.js";
 
 const DEFAULT_CONFIG: SentinelConfig = {
   port: 4100,
+  dashboardPort: 4200,
   logLevel: "info",
   servers: [],
   audit: {
@@ -53,6 +54,8 @@ function mergeConfig(
     audit: { ...defaults.audit, ...overrides.audit },
     security: { ...defaults.security, ...overrides.security },
     auth: { ...defaults.auth, ...overrides.auth },
+    port: overrides.port ?? defaults.port,
+    dashboardPort: overrides.dashboardPort ?? defaults.dashboardPort,
   };
 }
 

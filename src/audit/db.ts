@@ -165,3 +165,103 @@ export function queryAuditLogs(opts: {
     )
     .all(params) as AuditEntry[];
 }
+
+export interface ViolationEntry {
+  id: string;
+  auditLogId: string;
+  type: "policy_deny" | "scan_alert";
+  severity: "low" | "medium" | "high" | "critical";
+  ruleId: string;
+  detail: string;
+  timestamp: number;
+}
+
+export function insertViolation(v: ViolationEntry): void {
+  const instance = getDatabase();
+  instance.prepare(`
+    INSERT OR IGNORE INTO violations (id, audit_log_id, type, severity, rule_id, detail, timestamp)
+    VALUES (@id, @auditLogId, @type, @severity, @ruleId, @detail, @timestamp)
+  `).run(v);
+}
+
+export function queryViolations(opts: {
+  from?: number;
+  to?: number;
+  severity?: string;
+  type?: string;
+  limit?: number;
+  offset?: number;
+}): ViolationEntry[] {
+  const instance = getDatabase();
+  const conditions: string[] = [];
+  const params: Record<string, unknown> = {};
+
+  if (opts.from !== undefined) { conditions.push("v.timestamp >= @from"); params["from"] = opts.from; }
+  if (opts.to !== undefined) { conditions.push("v.timestamp <= @to"); params["to"] = opts.to; }
+  if (opts.severity) { conditions.push("v.severity = @severity"); params["severity"] = opts.severity; }
+  if (opts.type) { conditions.push("v.type = @type"); params["type"] = opts.type; }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  params["limit"] = opts.limit ?? 100;
+  params["offset"] = opts.offset ?? 0;
+
+  return instance.prepare(
+    `SELECT v.id, v.audit_log_id as auditLogId, v.type, v.severity, v.rule_id as ruleId, v.detail, v.timestamp
+     FROM violations v ${where} ORDER BY v.timestamp DESC LIMIT @limit OFFSET @offset`
+  ).all(params) as ViolationEntry[];
+}
+
+export interface SentinelStats {
+  totalCalls: number;
+  allowedCalls: number;
+  deniedCalls: number;
+  violationCount: number;
+  callsLastHour: number;
+  avgLatencyMs: number;
+  topTools: Array<{ toolName: string; count: number }>;
+  topCallers: Array<{ callerId: string; count: number }>;
+}
+
+export function getStats(): SentinelStats {
+  const instance = getDatabase();
+  const oneHourAgo = Date.now() - 3600_000;
+
+  const totals = instance.prepare(`
+    SELECT
+      COUNT(*) as totalCalls,
+      SUM(CASE WHEN policy_decision = 'allow' THEN 1 ELSE 0 END) as allowedCalls,
+      SUM(CASE WHEN policy_decision = 'deny' THEN 1 ELSE 0 END) as deniedCalls,
+      AVG(latency_ms) as avgLatencyMs
+    FROM audit_logs
+  `).get() as { totalCalls: number; allowedCalls: number; deniedCalls: number; avgLatencyMs: number };
+
+  const callsLastHour = (instance.prepare(
+    `SELECT COUNT(*) as c FROM audit_logs WHERE timestamp >= @t`
+  ).get({ t: oneHourAgo }) as { c: number }).c;
+
+  const violationCount = (instance.prepare(
+    `SELECT COUNT(*) as c FROM violations`
+  ).get() as { c: number }).c;
+
+  const topTools = instance.prepare(`
+    SELECT tool_name as toolName, COUNT(*) as count
+    FROM audit_logs WHERE tool_name IS NOT NULL
+    GROUP BY tool_name ORDER BY count DESC LIMIT 10
+  `).all() as Array<{ toolName: string; count: number }>;
+
+  const topCallers = instance.prepare(`
+    SELECT caller_id as callerId, COUNT(*) as count
+    FROM audit_logs GROUP BY caller_id ORDER BY count DESC LIMIT 10
+  `).all() as Array<{ callerId: string; count: number }>;
+
+  return {
+    totalCalls: totals.totalCalls ?? 0,
+    allowedCalls: totals.allowedCalls ?? 0,
+    deniedCalls: totals.deniedCalls ?? 0,
+    violationCount,
+    callsLastHour,
+    avgLatencyMs: Math.round(totals.avgLatencyMs ?? 0),
+    topTools,
+    topCallers,
+  };
+}

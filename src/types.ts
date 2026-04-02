@@ -4,6 +4,7 @@
 
 export interface SentinelConfig {
   port: number;
+  dashboardPort: number;
   logLevel: "debug" | "info" | "warn" | "error";
   servers: ServerConfig[];
   audit: AuditConfig;

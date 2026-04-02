@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": "www",
+  "rewrites": [
+    { "source": "/api/stripe-checkout", "destination": "/api/stripe-checkout" },
+    { "source": "/(.*)", "destination": "/$1" }
+  ],
+  "routes": [
+    {
+      "src": "/api/stripe-checkout",
+      "dest": "/api/stripe-checkout.ts"
+    },
+    {
+      "src": "/(?!api/).*",
+      "dest": "/index.html",
+      "status": 200
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_URL": "https://mcp-sentinel.com"
+  }
+}
