@@ -1,0 +1,59 @@
+{
+  "name": "mcp-sentinel",
+  "version": "0.1.0",
+  "description": "Open-source governance proxy for MCP servers — RBAC, audit trail, security scanning",
+  "author": "Meraki Road",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "mcp-sentinel": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "proxy",
+    "governance",
+    "rbac",
+    "audit",
+    "security"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.9.0",
+    "better-sqlite3": "^9.4.3",
+    "chokidar": "^3.6.0",
+    "js-yaml": "^4.1.0",
+    "micromatch": "^4.0.8",
+    "undici": "^6.21.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/js-yaml": "^4.0.9",
+    "@types/micromatch": "^4.0.9",
+    "@types/node": "^20.17.0",
+    "@types/jest": "^29.5.14",
+    "@types/yargs": "^17.0.33",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.6",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.3"
+  }
+}
